@@ -21,75 +21,91 @@ import math
 #---------------------------------#
 # Page layout
 ## Page expands to full width
-st.set_page_config(page_title='Demo Data Analysis App')
+st.set_page_config(page_title='Multiple Imputation Data Analysis App')
 
 #---------------------------------#
 st.write("""
-# Multiple Imputation Analyze Binary Distribution response App
+# Multiple Imputation Analyze Binary Distribution Response App
 """)
-
-a = []
-a2 = []
-for trial in range(1, 101):
-    for trt in range(0, 2):
-        for subj in range(1, 61): 
-
-            # 	Covariates 
-            gender = bernoulli.rvs(p=0.5) 
-            race = math.ceil(uniform.rvs(loc=0)*5)
-            score = norm.rvs(2,1) 								    # a continuous baseline score
-            if score > 3.5 : score_c = 2 
-            else : score_c = 1		                            	# a baseline score category (1=low, 2=high)
-
-            # Adverse event 	 
-            miss_ae = bernoulli.rvs(p=0.2) 							# miss_ae is missingness indicator for subjects
-            if miss_ae==1 : mm_ae=random.randint(1,6)         	    # mm_ae is missingness indicator for months - adverse event
-            elif miss_ae==0 : mm_ae=NaN
-
-            # Intercurrent event 	 
-            miss_ie = bernoulli.rvs(p=0.1)							# miss_ie is missingness indicator for subjects
-            if miss_ie==1 : mm_ie=random.randint(1,6)      	        # mm_ie is missingness indicator for months - intercurrent event
-            elif miss_ie==0 : mm_ie=NaN        
-
-            for vis in range(7): 
-                if trt == 0 : resp = bernoulli.rvs(p=0.8)            # placebo values
-                else : resp = bernoulli.rvs(p=0.9)                   # active values
-
-                # Lack of Efficacy			
-                if score < 0  : miss_ef = 1	
-                if vis == 0 : miss_ef = NaN	
-
-                if (vis >= mm_ae and mm_ae != NaN) or (vis >= mm_ie and mm_ie != NaN) or miss_ef == 1 : resp_ = NaN  
-                else : resp_ = resp
- 
-                a.append([trial,trt,subj,gender,race,score,score_c,vis,mm_ae,mm_ie,miss_ef,resp])
-                a2.append([trial,trt,subj,gender,race,score,score_c,vis,mm_ae,mm_ie,miss_ef,resp_])
-
-
-
-df = pd.DataFrame(a, columns=["trial", "trt", "subj", "gender", "race", "score", "score_c", "vis","mm_ae", "mm_ie", "miss_ef", "resp"])
-df2 = pd.DataFrame(a2, columns=["trial", "trt", "subj", "gender", "race", "score", "score_c", "vis","mm_ae", "mm_ie", "miss_ef", "resp"])
-
-st.write("""
-# 
-Full Data
-""")
-st.write(df)
-
-st.write("""
-# 
-Data With Missing value
-""")
-
-st.write(df2)
-
-
-
-
 
 #---------------------------------#
 # Sidebar - Collects user input features into dataframe
 st.sidebar.header('Input your parameter')
+type = st.sidebar.text_input("Response Type")
+N_trial = st.sidebar.number_input("Number of Trial", min_value=1, max_value=1000, step=1)
+N_trt = st.sidebar.number_input("Number of Treatment Group", min_value=1, max_value=2, step=1)
+N_subj = st.sidebar.number_input("Number of Subject", min_value=1, max_value=1000, step=1)
+N_vis = st.sidebar.number_input("Number of Visit", min_value=1, max_value=6, step=1)
+
+#---------------------------------#
+# Simulate Dataset
+def simulate(Ntrial, Ntrt, Nsubj, Nvis):
+    # global trial, trt, subj, vis 
+    a = []
+    a2 = []
+    for trial in range(1, Ntrial+1):
+        for trt in range(0, Ntrt):
+            for subj in range(1, Nsubj+1): 
+
+                # 	Covariates 
+                gender = bernoulli.rvs(p=0.5) 
+                race = math.ceil(uniform.rvs(loc=0)*5)
+                score = norm.rvs(2,1) 								    # a continuous baseline score
+                if score > 3.5 : score_c = 2 
+                else : score_c = 1		                            	# a baseline score category (1=low, 2=high)
+
+                # Adverse event 	 
+                miss_ae = bernoulli.rvs(p=0.2) 							# miss_ae is missingness indicator for subjects
+                if miss_ae==1 : mm_ae=random.randint(1,6)         	    # mm_ae is missingness indicator for months - adverse event
+                elif miss_ae==0 : mm_ae=NaN
+
+                # Intercurrent event 	 
+                miss_ie = bernoulli.rvs(p=0.1)							# miss_ie is missingness indicator for subjects
+                if miss_ie==1 : mm_ie=random.randint(1,6)      	        # mm_ie is missingness indicator for months - intercurrent event
+                elif miss_ie==0 : mm_ie=NaN        
+
+                for vis in range(Nvis+1): 
+                    if trt == 0 : resp = bernoulli.rvs(p=0.8)            # placebo values
+                    else : resp = bernoulli.rvs(p=0.9)                   # active values
+
+                    # Lack of Efficacy			
+                    if score < 0  : miss_ef = 1	
+                    if vis == 0 : miss_ef = NaN	
+
+                    if (vis >= mm_ae and mm_ae != NaN) or (vis >= mm_ie and mm_ie != NaN) or miss_ef == 1 : resp_ = NaN  
+                    else : resp_ = resp
+
+                    a.append([trial,trt,subj,gender,race,score,score_c,vis,mm_ae,mm_ie,miss_ef,resp])
+                    a2.append([trial,trt,subj,gender,race,score,score_c,vis,mm_ae,mm_ie,miss_ef,resp_])
+
+    df = pd.DataFrame(a, columns=["trial", "trt", "subj", "gender", "race", "score", "score_c", "vis","mm_ae", "mm_ie", "miss_ef", "resp"])
+    df2 = pd.DataFrame(a2, columns=["trial", "trt", "subj", "gender", "race", "score", "score_c", "vis","mm_ae", "mm_ie", "miss_ef", "resp"])
+
+    return df, df2
+
+Submit = st.sidebar.button("Submit")
+if Submit :
+    st.spinner(text='In progress...')
+    result = simulate(N_trial, N_trt, N_subj, N_vis)
+    st.write("""
+    # 
+    Full Data
+    """)
+    st.write(result[0])
+
+    st.write("""
+    # 
+    Data With Missing value
+    """)
+
+    st.write(result[1])
+
+    st.balloons()
+
+
+
+
+
 
 
 
